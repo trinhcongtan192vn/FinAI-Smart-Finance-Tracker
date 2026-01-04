@@ -1,0 +1,8 @@
+{
+  "name": "FinAI - Smart Finance Tracker - Deploy",
+  "description": "A comprehensive AI-powered finance application featuring dashboard analytics, smart budget tracking, chatbot-enabled expense entry, and detailed financial reporting.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

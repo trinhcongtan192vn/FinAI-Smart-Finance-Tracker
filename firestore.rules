@@ -1,0 +1,51 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isSharedUser(docData) {
+      return isAuthenticated() 
+          && request.auth.token.email != null 
+          && docData != null 
+          && 'sharedWithEmails' in docData 
+          && request.auth.token.email.lower() in docData.sharedWithEmails;
+    }
+
+    function getParentUserData(userId) {
+      let docPath = /databases/$(database)/documents/users/$(userId);
+      return exists(docPath) ? get(docPath).data : null;
+    }
+
+    // --- USER PROFILE RULES ---
+
+    match /users/{userId} {
+      // 1. OWNER has full access
+      allow read, write: if isOwner(userId);
+
+      // 2. Shared User can read profile to see permissions
+      allow read: if resource != null && isSharedUser(resource.data);
+      
+      // 3. Allow listing users for sharing functionality (requires authentication)
+      allow list: if isAuthenticated();
+
+      // --- SUBCOLLECTIONS RULES (Transactions, Accounts, etc.) ---
+      match /{collectionName}/{docId} {
+        // Owner has full access
+        allow read, write: if isOwner(userId);
+        
+        // Shared User can read/write based on parent doc's sharing settings
+        allow read, write: if isSharedUser(getParentUserData(userId));
+      }
+    }
+  }
+}
