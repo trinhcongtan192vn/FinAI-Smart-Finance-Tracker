@@ -134,10 +134,22 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// Bắt các route lạ để không trả về HTML
-app.use((req, res) => {
-    console.warn(`!!! [Proxy Warning] Path không tồn tại: ${req.method} ${req.url}`);
-    res.status(404).json({ error: 'Endpoint không tồn tại trên Proxy.' });
+// Serve static files from the 'dist' directory
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle React Routing, return all requests to React app
+app.get('*', (req, res) => {
+    // Skip /api routes
+    if (req.url.startsWith('/api')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 const PORT = process.env.PORT || 8080;

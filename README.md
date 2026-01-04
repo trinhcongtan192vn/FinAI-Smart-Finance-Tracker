@@ -110,9 +110,10 @@ Since the application requires a backend proxy (`server.js`) to securely communi
       --set-env-vars "VITE_FIREBASE_PROJECT_ID=your_project_id" \
       --set-env-vars "VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com" \
       --set-env-vars "VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id" \
-      --set-env-vars "VITE_FIREBASE_APP_ID=your_app_id"
+      --set-env-vars "VITE_FIREBASE_APP_ID=your_app_id" \
+      --set-env-vars "VITE_TELEGRAM_BOT_TOKEN=your_telegram_bot_token"
     ```
-    *Tip: You can also use a `.env` file or Google Secret Manager for better security management.*
+    *Important: For `VITE_*` variables to be visible in the frontend, they must be present during the image build process. Ensure your `.env.local` is included in the build context (check `.gitignore`/`.dockerignore`) or pass them as build arguments if using a custom pipeline.*
 
 ### Option 2: Render / Heroku / Railway
 You can deploy this repository directly to any platform that supports Node.js.
