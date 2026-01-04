@@ -97,14 +97,22 @@ Since the application requires a backend proxy (`server.js`) to securely communi
     gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/finai-tracker
 
     # Deploy to Cloud Run
+    # Deploy to Cloud Run (Make sure to replace placeholders with your actual keys)
     gcloud run deploy finai-tracker \
       --image gcr.io/YOUR_PROJECT_ID/finai-tracker \
       --platform managed \
       --region us-central1 \
       --allow-unauthenticated \
-      --set-env-vars "GEMINI_API_KEY=xxx,DIFY_API_KEY=xxx"
+      --set-env-vars "GEMINI_API_KEY=your_gemini_key" \
+      --set-env-vars "DIFY_API_KEY=your_dify_key" \
+      --set-env-vars "VITE_FIREBASE_API_KEY=your_firebase_api_key" \
+      --set-env-vars "VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com" \
+      --set-env-vars "VITE_FIREBASE_PROJECT_ID=your_project_id" \
+      --set-env-vars "VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com" \
+      --set-env-vars "VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id" \
+      --set-env-vars "VITE_FIREBASE_APP_ID=your_app_id"
     ```
-    *Note: Remember to set your Firebase environment variables in Cloud Run as well.*
+    *Tip: You can also use a `.env` file or Google Secret Manager for better security management.*
 
 ### Option 2: Render / Heroku / Railway
 You can deploy this repository directly to any platform that supports Node.js.
