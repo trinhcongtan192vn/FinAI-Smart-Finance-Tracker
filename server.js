@@ -153,7 +153,7 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`=========================================`);
     console.log(`FinAI Proxy Server đang chạy tại port ${PORT}`);
     console.log(`Endpoint: POST http://localhost:${PORT}/api/chat`);
