@@ -131,6 +131,54 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
+/**
+ * Proxy Endpoint cho Google GenAI (cho NewEntry AI)
+ */
+app.post('/api-proxy/v1beta/models/:model', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    console.log(">>> [GenAI Proxy] Request for model:", req.params.model);
+
+    try {
+        const { model } = req.params;
+        const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+        if (!GEMINI_API_KEY) {
+            console.error("!!! [GenAI Proxy Error] Missing Gemini API Key.");
+            return res.status(500).json({ error: 'Server missing Gemini API Key' });
+        }
+
+        // Forward request to Google GenAI API
+        const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}`,
+            req.body,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': GEMINI_API_KEY
+                },
+                timeout: 30000
+            }
+        );
+
+        console.log("<<< [GenAI Proxy] Success");
+        return res.status(200).json(response.data);
+
+    } catch (error) {
+        console.error('!!! [GenAI Proxy Error]', error.message);
+
+        if (error.response) {
+            return res.status(error.response.status).json({
+                error: `GenAI API Error: ${error.response.status}`,
+                details: error.response.data
+            });
+        } else if (error.request) {
+            return res.status(502).json({ error: 'Cannot connect to GenAI API' });
+        } else {
+            return res.status(500).json({ error: 'GenAI Proxy Error: ' + error.message });
+        }
+    }
+});
+
 // Serve static files from the 'dist' directory
 import path from 'path';
 import { fileURLToPath } from 'url';
