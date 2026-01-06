@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+dotenv.config(); // Tải từ .env mặc định
+dotenv.config({ path: '.env.local' }); // Tải thêm từ .env.local nếu có (ghi đè)
 import express from 'express';
 import axios from 'axios';
 import cors from 'cors';

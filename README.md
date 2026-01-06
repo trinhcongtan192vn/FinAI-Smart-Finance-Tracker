@@ -131,9 +131,24 @@ You can deploy this repository directly to any platform that supports Node.js.
 4.  Set Output Directory: `dist`
 5.  Add Environment Variables (`VITE_FIREBASE_*`).
 
+## Docker Compose Deployment (Recommended)
+
+The easiest way to start the FinAI server is through Docker Compose. Before running, make sure that Docker and Docker Compose are installed on your machine.
+
+```bash
+cd docker
+cp .env.example .env
+# Edit .env and add your API keys/Firebase config
+docker compose up -d
+```
+
+After running, you can access the application at `http://localhost:8080`.
+
 ## Project Structure
 - `/src`: React source code
 - `/components`: Reusable UI components
 - `/views`: Main application pages
 - `/lib`: Utilities and Firebase config
+- `/docker`: Docker Compose configuration and environment templates
 - `/server.js`: Express backend proxy for Dify API
+- `Dockerfile`: Multi-stage build for frontend and backend
