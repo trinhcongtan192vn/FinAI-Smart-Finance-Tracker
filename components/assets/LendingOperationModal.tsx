@@ -82,8 +82,9 @@ export const LendingOperationModal: React.FC<LendingOperationModalProps> = ({ op
           break;
 
         case 'EXTEND':
-          const extension: LendingExtension = { id: crypto.randomUUID(), date: now.split('T')[0], previous_end_date: account.lending_details?.end_date || 'N/A', new_end_date: date, note };
-          batch.update(lendingAccRef, { 'lending_details.end_date': date, 'lending_details.extension_history': [...(account.lending_details?.extension_history || []), extension] });
+          if (!account.lending_details) throw new Error("Lending details missing");
+          const extension: LendingExtension = { id: crypto.randomUUID(), date: now.split('T')[0], previous_end_date: account.lending_details.end_date || 'N/A', new_end_date: date, note };
+          batch.update(lendingAccRef, { 'lending_details.end_date': date, 'lending_details.extension_history': [...(account.lending_details.extension_history || []), extension] });
           break;
 
         case 'SETTLE':
@@ -112,47 +113,47 @@ export const LendingOperationModal: React.FC<LendingOperationModalProps> = ({ op
       <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => !loading && onClose()}></div>
       <div className="bg-white w-full max-w-md rounded-[2.5rem] relative z-10 shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="p-6 border-b flex items-center justify-between">
-           <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl ${config.bg} ${config.color} flex items-center justify-center`}><Icon size={24} /></div>
-              <h3 className="font-black text-slate-900">{config.title}</h3>
-           </div>
-           <button onClick={onClose} className="p-2 text-slate-400"><X size={20} /></button>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl ${config.bg} ${config.color} flex items-center justify-center`}><Icon size={24} /></div>
+            <h3 className="font-black text-slate-900">{config.title}</h3>
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400"><X size={20} /></button>
         </div>
 
         <div className="p-8 space-y-6 overflow-y-auto max-h-[60vh] no-scrollbar">
-           {operation === 'SETTLE' ? (
-              <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 text-center space-y-2">
-                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Tổng dư nợ hiện tại</p>
-                 <p className="text-2xl font-black text-indigo-900">{currencyFormatter.format(account.current_balance)}</p>
-                 <p className="text-[10px] font-medium text-indigo-600 pt-2 border-t border-indigo-100 italic">Toàn bộ dư nợ sẽ được thu hồi về ví chọn.</p>
-              </div>
-           ) : operation !== 'EXTEND' && (
-              <AmountInput label={operation === 'COLLECT' ? "Số tiền thu hồi" : "Số tiền hạch toán"} value={amount} onChange={setAmount} autoFocus />
-           )}
+          {operation === 'SETTLE' ? (
+            <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 text-center space-y-2">
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Tổng dư nợ hiện tại</p>
+              <p className="text-2xl font-black text-indigo-900">{currencyFormatter.format(account.current_balance)}</p>
+              <p className="text-[10px] font-medium text-indigo-600 pt-2 border-t border-indigo-100 italic">Toàn bộ dư nợ sẽ được thu hồi về ví chọn.</p>
+            </div>
+          ) : operation !== 'EXTEND' && (
+            <AmountInput label={operation === 'COLLECT' ? "Số tiền thu hồi" : "Số tiền hạch toán"} value={amount} onChange={setAmount} autoFocus />
+          )}
 
-           {operation === 'EXTEND' && <DateInput label="Ngày đáo hạn mới" value={date} onChange={setDate} />}
+          {operation === 'EXTEND' && <DateInput label="Ngày đáo hạn mới" value={date} onChange={setDate} />}
 
-           {['TOP_UP', 'COLLECT', 'SETTLE'].includes(operation) && (
-              <div className="flex flex-col gap-2">
-                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Landmark size={12} /> {operation === 'TOP_UP' ? 'Trích tiền từ' : 'Thu hồi về'}</label>
-                 <select value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-slate-900 outline-none appearance-none">
-                    {cashAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({currencyFormatter.format(acc.current_balance)})</option>)}
-                 </select>
-              </div>
-           )}
+          {['TOP_UP', 'COLLECT', 'SETTLE'].includes(operation) && (
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Landmark size={12} /> {operation === 'TOP_UP' ? 'Trích tiền từ' : 'Thu hồi về'}</label>
+              <select value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black text-slate-900 outline-none appearance-none">
+                {cashAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name} ({currencyFormatter.format(acc.current_balance)})</option>)}
+              </select>
+            </div>
+          )}
 
-           <StandardInput label="Ghi chú" value={note} onChange={setNote} placeholder="Nhập nội dung hạch toán..." />
-           <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
-              <Info size={16} className="text-slate-400 shrink-0 mt-0.5" />
-              <p className="text-[9px] font-medium text-slate-400 leading-relaxed uppercase">Mọi nghiệp vụ sẽ được ghi sổ tự động vào Ledger để bảo đảm tính cân đối kế toán.</p>
-           </div>
+          <StandardInput label="Ghi chú" value={note} onChange={setNote} placeholder="Nhập nội dung hạch toán..." />
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-3">
+            <Info size={16} className="text-slate-400 shrink-0 mt-0.5" />
+            <p className="text-[9px] font-medium text-slate-400 leading-relaxed uppercase">Mọi nghiệp vụ sẽ được ghi sổ tự động vào Ledger để bảo đảm tính cân đối kế toán.</p>
+          </div>
         </div>
 
         <div className="p-6 bg-slate-50 border-t">
-           <button onClick={handleSave} disabled={loading || (operation !== 'EXTEND' && operation !== 'SETTLE' && !amount)} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50">
-              {loading ? <Loader2 size={24} className="animate-spin text-emerald-400" /> : <Save size={20} className="text-emerald-400" />}
-              {operation === 'SETTLE' ? 'Xác nhận tất toán' : 'Xác nhận hạch toán'}
-           </button>
+          <button onClick={handleSave} disabled={loading || (operation !== 'EXTEND' && operation !== 'SETTLE' && !amount)} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+            {loading ? <Loader2 size={24} className="animate-spin text-emerald-400" /> : <Save size={20} className="text-emerald-400" />}
+            {operation === 'SETTLE' ? 'Xác nhận tất toán' : 'Xác nhận hạch toán'}
+          </button>
         </div>
       </div>
     </div>

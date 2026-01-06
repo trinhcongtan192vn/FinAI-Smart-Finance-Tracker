@@ -21,16 +21,16 @@ export const compressImage = async (file: File, maxWidth = 200, quality = 0.6): 
         const canvas = document.createElement('canvas');
         const scaleSize = maxWidth / img.width;
         const finalScale = scaleSize < 1 ? scaleSize : 1;
-        
+
         canvas.width = img.width * finalScale;
         canvas.height = img.height * finalScale;
-        
+
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            reject(new Error("Canvas context not available"));
-            return;
+          reject(new Error("Canvas context not available"));
+          return;
         }
-        
+
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
         resolve(dataUrl);
@@ -46,16 +46,16 @@ export const compressImage = async (file: File, maxWidth = 200, quality = 0.6): 
 export const formatCurrency = (value: number | string | undefined | null, currency = appCurrency) => {
   const numValue = Number(value);
   if (isNaN(numValue)) return '0';
-  
-  let locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'; 
+
+  let locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   if (currency === 'USD') locale = 'en-US';
   else if (currency === 'VND') locale = 'vi-VN';
 
   try {
-    return new Intl.NumberFormat(locale, { 
-      style: 'currency', 
-      currency: currency, 
-      maximumFractionDigits: 0 
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      maximumFractionDigits: 0
     }).format(numValue);
   } catch (error) {
     return numValue.toString();
@@ -75,19 +75,19 @@ export const formatCurrencyCompact = (val: number | string | undefined | null, c
   else if (currency === 'VND') locale = 'vi-VN';
 
   try {
-    return new Intl.NumberFormat(locale, { 
-      style: 'currency', 
-      currency: currency, 
-      notation: "compact" 
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      notation: "compact"
     }).format(numValue);
   } catch (error) {
     return numValue.toString();
   }
 };
 
-export const unitFormatter = new Intl.NumberFormat('en-US', { 
+export const unitFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 6,
-  minimumFractionDigits: 0 
+  minimumFractionDigits: 0
 });
 
 export const percentFormatter = new Intl.NumberFormat('en-US', {
@@ -100,7 +100,7 @@ export const getCategoryLabel = (name: string, t: any) => {
   if (!name) return "";
   const key = name.toLowerCase().trim().replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, '');
   const translationKey = `categories.${key}`;
-  
+
   if (i18n.exists(translationKey)) {
     return t(translationKey);
   }
@@ -111,11 +111,11 @@ export const getCategoryLabel = (name: string, t: any) => {
 
 export const classifyExpenseType = (categoryName: string): 'FIXED' | 'VARIABLE' => {
   const fixedKeywords = [
-    'housing', 'rent', 'mortgage', 'nhà', 'thuê', 'nợ', 'lãi', 'interest', 'loan', 
+    'housing', 'rent', 'mortgage', 'nhà', 'thuê', 'nợ', 'lãi', 'interest', 'loan',
     'financial', 'insurance', 'bảo hiểm', 'internet', 'electric', 'water', 'điện', 'nước',
     'tuition', 'học phí', 'education', 'health', 'y tế', 'thuốc', 'subscription'
   ];
-  
+
   const lowerName = categoryName.toLowerCase();
   if (fixedKeywords.some(k => lowerName.includes(k))) return 'FIXED';
   return 'VARIABLE';
@@ -130,10 +130,10 @@ export const calculateNewWAC = (
 ): number => {
   const totalUnits = currentUnits + newUnits;
   if (totalUnits <= 0) return 0;
-  
+
   const currentCostBasis = currentUnits * currentAvgPrice;
   const newCostBasis = (newUnits * buyPrice) + fees;
-  
+
   return (currentCostBasis + newCostBasis) / totalUnits;
 };
 
@@ -148,12 +148,12 @@ export const calculateRealizedPnL = (
 
 export const calculateInvestmentPerformance = (details: any) => {
   if (!details || details.total_units === 0) return null;
-  
+
   const costBasis = details.total_units * details.avg_price;
   const marketValue = details.total_units * details.market_price;
   const unrealizedPnL = marketValue - costBasis;
   const roi = costBasis !== 0 ? (unrealizedPnL / costBasis) : 0;
-  
+
   return {
     costBasis,
     marketValue,
@@ -175,12 +175,12 @@ export const calculateTotalPortfolioPerformance = (accounts: any[]) => {
     if (acc.investment_details && acc.investment_details.total_units > 0) {
       totalCostBasis += acc.investment_details.total_units * acc.investment_details.avg_price;
       totalMarketValue += acc.investment_details.total_units * acc.investment_details.market_price;
-    } 
+    }
     else if (acc.real_estate_details) {
       totalCostBasis += acc.real_estate_details.total_investment || 0;
       totalMarketValue += acc.current_balance || 0;
     }
-    
+
     totalRealizedPnL += (acc.realized_pnl || 0);
   });
 
@@ -202,20 +202,21 @@ export interface FinStatsParams {
   rate: number;
   startDate: string;
   endDate?: string;
-  period: 'MONTHLY' | 'YEARLY';
+  period?: 'MONTHLY' | 'YEARLY';
+  interestType?: 'REDUCING_BALANCE' | 'FLAT' | 'SIMPLE';
 }
 
 export const calculateFinancialStats = (params: FinStatsParams) => {
-  const { principal, rate, startDate, endDate, period } = params;
-  
+  const { principal, rate, startDate, endDate, period, interestType } = params;
+
   const now = new Date();
   const start = new Date(startDate);
   const end = endDate ? new Date(endDate) : null;
-  
+
   let progress = 0;
   let daysRemaining = 0;
   let isExpired = false;
-  
+
   if (end) {
     const totalDuration = end.getTime() - start.getTime();
     const elapsed = now.getTime() - start.getTime();
@@ -304,57 +305,57 @@ export const generateFutureEvents = (
 ): ScheduledEvent[] => {
   const events: ScheduledEvent[] = [];
   const start = new Date(startDate);
-  
-  if (cycle === 'END_OF_TERM') {
-     const end = new Date(start);
-     end.setMonth(end.getMonth() + termMonths);
-     // Simple interest assumption for end of term visualization
-     const interest = principal * (rate / 100) * (termMonths / 12);
-     events.push({
-       id: crypto.randomUUID(),
-       date: end.toISOString().split('T')[0],
-       title: `Đáo hạn: ${baseTitle}`,
-       amount: Math.round(principal + interest),
-       type: flowType,
-       completed: false
-     });
-  } else {
-     // Periodic Payments
-     let interval = 1; 
-     if (cycle === 'QUARTERLY') interval = 3;
-     if (cycle === 'YEARLY') interval = 12;
-     if (cycle === 'SEMI_ANNUAL') interval = 6;
 
-     const count = Math.ceil(termMonths / interval);
-     const periodicPrincipal = principal / count;
-     const periodicInterest = principal * (rate / 100) * (interval / 12);
-     const estimatedPayment = Math.round(periodicPrincipal + periodicInterest);
-     
-     for (let i = 1; i <= count; i++) {
-        // Logic to align with paymentDay if provided
-        const d = new Date(start);
-        const targetMonth = d.getMonth() + (i * interval);
-        
-        if (paymentDay && paymentDay > 0) {
-            // Set to specific day of target month
-            d.setMonth(targetMonth);
-            const daysInTargetMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-            d.setDate(Math.min(paymentDay, daysInTargetMonth));
-        } else {
-            // Default cycle add
-            d.setMonth(targetMonth);
-        }
-        
-        events.push({
-           id: crypto.randomUUID(),
-           date: d.toISOString().split('T')[0],
-           title: `Kỳ ${i}: ${baseTitle}`,
-           amount: estimatedPayment,
-           type: flowType,
-           completed: false
-        });
-     }
+  if (cycle === 'END_OF_TERM') {
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + termMonths);
+    // Simple interest assumption for end of term visualization
+    const interest = principal * (rate / 100) * (termMonths / 12);
+    events.push({
+      id: crypto.randomUUID(),
+      date: end.toISOString().split('T')[0],
+      title: `Đáo hạn: ${baseTitle}`,
+      amount: Math.round(principal + interest),
+      type: flowType,
+      completed: false
+    });
+  } else {
+    // Periodic Payments
+    let interval = 1;
+    if (cycle === 'QUARTERLY') interval = 3;
+    if (cycle === 'YEARLY') interval = 12;
+    if (cycle === 'SEMI_ANNUAL') interval = 6;
+
+    const count = Math.ceil(termMonths / interval);
+    const periodicPrincipal = principal / count;
+    const periodicInterest = principal * (rate / 100) * (interval / 12);
+    const estimatedPayment = Math.round(periodicPrincipal + periodicInterest);
+
+    for (let i = 1; i <= count; i++) {
+      // Logic to align with paymentDay if provided
+      const d = new Date(start);
+      const targetMonth = d.getMonth() + (i * interval);
+
+      if (paymentDay && paymentDay > 0) {
+        // Set to specific day of target month
+        d.setMonth(targetMonth);
+        const daysInTargetMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        d.setDate(Math.min(paymentDay, daysInTargetMonth));
+      } else {
+        // Default cycle add
+        d.setMonth(targetMonth);
+      }
+
+      events.push({
+        id: crypto.randomUUID(),
+        date: d.toISOString().split('T')[0],
+        title: `Kỳ ${i}: ${baseTitle}`,
+        amount: estimatedPayment,
+        type: flowType,
+        completed: false
+      });
+    }
   }
-  
+
   return events;
 };

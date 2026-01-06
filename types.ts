@@ -25,16 +25,16 @@ export interface FIREConfig {
   annualExpenses: number;
   savingsRate: number; // Calculated from income and expenses
   currentPortfolio: number;
-  withdrawalRate: number; 
+  withdrawalRate: number;
   inflationRate: number;
-  
+
   // Asset Allocation Fields
   stocksWeight: number; // e.g. 60
   bondsWeight: number;  // e.g. 40
   stocksReturn: number; // e.g. 10
   bondsReturn: number;  // e.g. 5
   cashReturn: number;   // e.g. 3 (Interest rate for cushion)
-  
+
   cashCushionYears: number;
 }
 
@@ -151,6 +151,32 @@ export interface LiabilityDetails {
   end_date: string;
   term_months: number;
   grace_period_months: number;
+}
+
+export interface LendingDetails {
+  borrower_id: string;
+  borrower_name: string;
+  principal_amount: number;
+  interest_rate: number;
+  interest_type: 'REDUCING_BALANCE' | 'FLAT' | 'SIMPLE';
+  interest_period?: 'MONTHLY' | 'YEARLY';
+  interest_cycle?: 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUAL' | 'YEARLY' | 'END_OF_TERM';
+  payment_day: number;
+  payment_cycle: 'MONTHLY' | 'QUARTERLY' | 'SEMI_ANNUAL' | 'YEARLY' | 'END_OF_TERM';
+  start_date: string;
+  end_date: string;
+  term_months: number;
+  borrower_phone?: string;
+  extension_history?: LendingExtension[];
+  latest_ai_valuation?: any;
+}
+
+export interface LendingExtension {
+  id: string;
+  date: string;
+  previous_end_date: string;
+  new_end_date: string;
+  note?: string;
 }
 
 export interface CreditCardDetails {
@@ -318,6 +344,7 @@ export interface Account {
   liability_details?: LiabilityDetails;
   credit_card_details?: CreditCardDetails;
   real_estate_details?: RealEstateDetails;
+  lending_details?: LendingDetails;
   equity_amount?: number;
   liability_amount?: number;
   linked_liability_id?: string | null;

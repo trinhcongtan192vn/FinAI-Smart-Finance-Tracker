@@ -49,7 +49,7 @@ export const FIREChart: React.FC<FIREChartProps> = ({ data, scenario, retirement
               x2={retirementAge + 3}
               fill="#f43f5e"
               fillOpacity={0.1}
-              label={{ position: 'top', value: 'Khủng hoảng Stocks', fill: '#f43f5e', fontSize: 8, fontWeight: 900, textTransform: 'uppercase' }}
+              label={{ position: 'top', value: 'Khủng hoảng Stocks', fill: '#f43f5e', fontSize: 8, fontWeight: 900 }}
             />
           )}
           <Area type="monotone" dataKey="yieldShield" stackId="1" stroke="#6366f1" strokeWidth={3} fill="url(#colorYield)" name="Tài sản đầu tư" />

@@ -2,11 +2,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { auth, db } from '../lib/firebase';
 import { collection, query, orderBy, limit, onSnapshot, doc, where } from 'firebase/firestore';
-import { Account, Transaction, UserAIInsights } from '../types';
+import { Account, Transaction, UserAIInsights, Category } from '../types';
 
 export interface DashboardStats {
-  balance: number;      
-  netWorth: number;     
+  balance: number;
+  netWorth: number;
   totalAssets: number;
   totalLiabilities: number;
   income: number;
@@ -40,12 +40,12 @@ export const useDashboardData = (targetUid?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [stats, setStats] = useState<DashboardStats>({ 
-    balance: 0, 
+  const [stats, setStats] = useState<DashboardStats>({
+    balance: 0,
     netWorth: 0,
     totalAssets: 0,
     totalLiabilities: 0,
-    income: 0, 
+    income: 0,
     expense: 0,
     debt: 0,
     equity: 0,
@@ -61,7 +61,7 @@ export const useDashboardData = (targetUid?: string) => {
     if (!uid) return;
 
     setLoading(true);
-    
+
     // OPTIMIZATION: Dashboard only needs Current Month + Last Month for comparison
     const now = new Date();
     const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -82,7 +82,7 @@ export const useDashboardData = (targetUid?: string) => {
     const unsubCats = onSnapshot(collection(db, 'users', uid, 'categories'), (snapshot) => {
       const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setCategories(cats);
-      setMonthlyBudget(cats.reduce((sum, cat) => sum + (cat.group === 'EXPENSES' ? (Number(cat.limit) || 0) : 0), 0));
+      setMonthlyBudget(cats.reduce((sum, cat) => sum + ((cat as Category).group === 'EXPENSES' ? (Number((cat as Category).limit) || 0) : 0), 0));
     }, (err) => console.warn("Categories Listener Error:", err.code));
 
     const qRecent = query(collection(db, 'users', uid, 'transactions'), orderBy('datetime', 'desc'), limit(20));
@@ -92,11 +92,11 @@ export const useDashboardData = (targetUid?: string) => {
 
     // OPTIMIZATION: Fixed range query (last 2 months instead of 1 year)
     const qAnalytics = query(
-      collection(db, 'users', uid, 'transactions'), 
+      collection(db, 'users', uid, 'transactions'),
       where('datetime', '>=', dateLimit),
       orderBy('datetime', 'asc')
     );
-    
+
     const unsubAnalytics = onSnapshot(qAnalytics, (snapshot) => {
       setAllTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
@@ -147,7 +147,7 @@ export const useDashboardData = (targetUid?: string) => {
     const currentMonthLists = { income: [] as any[], expense: [] as any[], debt: [] as any[], equity: [] as any[] };
     const currentMonthExpensesByDay: Record<number, number> = {};
     const currentMonthTxnsByDay: Record<number, any[]> = {};
-    
+
     // We only use the data available in the optimized 2-month window
     const pastMonthKeys = [1].map(i => {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -162,15 +162,15 @@ export const useDashboardData = (targetUid?: string) => {
       const day = tDate.getDate();
       const amt = Number(d.amount) || 0;
       const effectiveGroup = d.group || catMap[d.category]?.group || 'Other';
-      
+
       const isTargetValidEquity = equityFundIds.includes(d.credit_account_id) && d.credit_account_id !== spendingFundId;
       const isSourceValidEquity = equityFundIds.includes(d.debit_account_id) && d.debit_account_id !== spendingFundId;
       const isCapitalInjection = isTargetValidEquity && !isSourceValidEquity;
 
       if (tKey === currentMonthKey) {
-        if (effectiveGroup === 'INCOME') { thisMonthInc += amt; currentMonthLists.income.push(d); } 
-        if (d.category === 'Financial Expense' || d.category === 'Chi phí lãi vay') { thisMonthDebtInterest += amt; currentMonthLists.debt.push(d); } 
-        else if (isCapitalInjection) { thisMonthEquity += amt; currentMonthLists.equity.push(d); } 
+        if (effectiveGroup === 'INCOME') { thisMonthInc += amt; currentMonthLists.income.push(d); }
+        if (d.category === 'Financial Expense' || d.category === 'Chi phí lãi vay') { thisMonthDebtInterest += amt; currentMonthLists.debt.push(d); }
+        else if (isCapitalInjection) { thisMonthEquity += amt; currentMonthLists.equity.push(d); }
         else if (effectiveGroup === 'EXPENSES') {
           thisMonthConsumption += amt;
           currentMonthLists.expense.push(d);
@@ -187,7 +187,7 @@ export const useDashboardData = (targetUid?: string) => {
     });
 
     const calcTrend = (curr: number, prev: number) => prev <= 0 ? 0 : ((curr - prev) / prev) * 100;
-    
+
     setStats({
       balance: totalCash,
       netWorth: totalAssets - totalLiabilities,
@@ -206,14 +206,14 @@ export const useDashboardData = (targetUid?: string) => {
     for (let i = 1; i <= daysInMonth; i++) {
       const dayAmount = currentMonthExpensesByDay[i] || 0;
       cumulativeCurrent += dayAmount;
-      
+
       chartPoints.push({
         day: i,
         current: cumulativeCurrent,
         // average and yearAverage removed here to simplify dashboard load, 
         // they are better placed in full reports view
         dailyAmount: dayAmount,
-        details: (currentMonthTxnsByDay[i] || []).sort((a,b) => b.amount - a.amount).slice(0, 3)
+        details: (currentMonthTxnsByDay[i] || []).sort((a, b) => b.amount - a.amount).slice(0, 3)
       });
     }
     setChartData(chartPoints);
