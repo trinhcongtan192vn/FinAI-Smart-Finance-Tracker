@@ -9,16 +9,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Middleware đảm bảo mọi response đều có header JSON
-app.use((req, res, next) => {
-    res.setHeader('Content-Type', 'application/json');
-    next();
-});
-
 /**
  * Proxy Endpoint cho Dify AI Advisor
  */
 app.post('/api/chat', async (req, res) => {
+    // Set JSON header only for API routes
+    res.setHeader('Content-Type', 'application/json');
     console.log(">>> [Proxy] Bắt đầu nhận yêu cầu từ Frontend");
 
     try {
