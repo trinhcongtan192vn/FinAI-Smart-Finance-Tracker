@@ -147,14 +147,15 @@ app.post('/api-proxy/v1beta/models/:model', async (req, res) => {
             return res.status(500).json({ error: 'Server missing Gemini API Key' });
         }
 
-        // Forward request to Google GenAI API
+        console.log(`>>> [GenAI Proxy] Key loaded (prefix: ${GEMINI_API_KEY.substring(0, 5)}...)`);
+
+        // Forward request to Google GenAI API using query parameter for key
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}?key=${GEMINI_API_KEY}`,
             req.body,
             {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': GEMINI_API_KEY
+                    'Content-Type': 'application/json'
                 },
                 timeout: 30000
             }
