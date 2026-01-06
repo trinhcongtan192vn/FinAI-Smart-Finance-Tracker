@@ -1,5 +1,5 @@
 # ===== Build stage =====
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Add ARGs for Vite environment variables (needed at build time)
@@ -31,7 +31,7 @@ COPY . .
 RUN npm run build
 
 # ===== Production stage =====
-FROM node:18-alpine
+FROM node:20-alpine
 WORKDIR /app
 
 # Copy built assets from builder stage
