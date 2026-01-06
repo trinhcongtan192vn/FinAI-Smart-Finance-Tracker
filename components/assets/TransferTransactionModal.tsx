@@ -86,10 +86,46 @@ export const TransferTransactionModal: React.FC<TransferTransactionModalProps> =
         <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"><div className="bg-slate-50 p-4 rounded-2xl border space-y-2"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Giao dịch:</p><div className="flex justify-between items-center"><span className="text-sm font-bold truncate pr-4">{transaction.note || transaction.category}</span><span className="text-sm font-black text-indigo-600 shrink-0">{currencyFormatter.format(transaction.amount)}</span></div></div>
           <div className="space-y-6"><div className="flex items-center justify-between"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chuyển sang:</p><button onClick={() => setIsCreatingNew(!isCreatingNew)} className="text-[9px] font-black text-indigo-600 uppercase flex items-center gap-1">{isCreatingNew ? "Chọn sẵn có" : "Tạo mới"}</button></div>
             {isCreatingNew ? <NewAccountForm formData={formData} setFormData={setFormData} availableCategories={availableCategories} sourceGroup={sourceAccount.group} /> : (
-              <div className="space-y-6">{[{l:'Cùng loại',t:Tag,a:sameCatAccounts},{l:'Khác nhóm',t:Layers,a:otherCatAccounts}].map((g,i)=>(<div key={i} className="space-y-3"><div className="flex items-center gap-2 px-1"><g.t size={12} className="text-indigo-500"/><span className="text-[10px] font-black text-slate-400 uppercase">{g.l}</span></div><div className="grid grid-cols-1 gap-2">{g.a.length===0?<p className="text-[10px] font-bold text-slate-300 italic px-2">Không có.</p>:g.a.map(acc=>(<button key={acc.id} onClick={()=>setSelectedDestId(acc.id)} className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left ${selectedDestId===acc.id?'bg-indigo-600 border-indigo-600 text-white shadow-lg':'bg-slate-50 border-slate-100 hover:border-indigo-200 text-slate-700'}`}><div className="flex items-center gap-3 min-w-0"><div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDestId===acc.id?'bg-white/20':'bg-indigo-50 text-indigo-500'}`}>{sourceAccount.group==='ASSETS'?<Database size={16}/>:<Database size={16}/>}</div><div className="truncate"><p className="text-sm font-bold truncate">{acc.name}</p><p className={`text-[9px] font-black uppercase ${selectedDestId===acc.id?'opacity-70':'text-slate-400'}`}>{acc.category}</p></div></div>{selectedDestId===acc.id&&<Check size={16}/>}</button>)))}</div></div>))}</div>
+              <div className="space-y-6">
+                {[{ l: 'Cùng loại', t: Tag, a: sameCatAccounts }, { l: 'Khác nhóm', t: Layers, a: otherCatAccounts }].map((g, i) => {
+                  const Icon = g.t;
+                  return (
+                    <div key={i} className="space-y-3">
+                      <div className="flex items-center gap-2 px-1">
+                        <Icon size={12} className="text-indigo-500" />
+                        <span className="text-[10px] font-black text-slate-400 uppercase">{g.l}</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2">
+                        {g.a.length === 0 ? (
+                          <p className="text-[10px] font-bold text-slate-300 italic px-2">Không có.</p>
+                        ) : (
+                          g.a.map(acc => (
+                            <button
+                              key={acc.id}
+                              onClick={() => setSelectedDestId(acc.id)}
+                              className={`flex items-center justify-between p-4 rounded-2xl border transition-all text-left ${selectedDestId === acc.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-slate-50 border-slate-100 hover:border-indigo-200 text-slate-700'}`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDestId === acc.id ? 'bg-white/20' : 'bg-indigo-50 text-indigo-500'}`}>
+                                  <Database size={16} />
+                                </div>
+                                <div className="truncate">
+                                  <p className="text-sm font-bold truncate">{acc.name}</p>
+                                  <p className={`text-[9px] font-black uppercase ${selectedDestId === acc.id ? 'opacity-70' : 'text-slate-400'}`}>{acc.category}</p>
+                                </div>
+                              </div>
+                              {selectedDestId === acc.id && <Check size={16} />}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          </div><div className="p-4 bg-amber-50 rounded-2xl border flex gap-3"><Database size={16} className="text-amber-600 shrink-0 mt-0.5"/><p className="text-[10px] font-medium text-amber-900 leading-relaxed">Hệ thống hạch toán lại số dư của <strong>{sourceAccount.name}</strong> và tài khoản đích.</p></div></div>
-        <div className="p-6 bg-slate-50 border-t"><button onClick={handleExecute} disabled={loading||(!isCreatingNew&&!selectedDestId)||(isCreatingNew&&!formData.newName.trim())} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-xl disabled:opacity-50">{loading?<Loader2 size={24} className="animate-spin text-indigo-400"/>:<Check size={24} className="text-indigo-400"/>}{loading?"Đang hạch toán...":"Xác nhận chuyển"}</button></div>
+          </div><div className="p-4 bg-amber-50 rounded-2xl border flex gap-3"><Database size={16} className="text-amber-600 shrink-0 mt-0.5" /><p className="text-[10px] font-medium text-amber-900 leading-relaxed">Hệ thống hạch toán lại số dư của <strong>{sourceAccount.name}</strong> và tài khoản đích.</p></div></div>
+        <div className="p-6 bg-slate-50 border-t"><button onClick={handleExecute} disabled={loading || (!isCreatingNew && !selectedDestId) || (isCreatingNew && !formData.newName.trim())} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-xl disabled:opacity-50">{loading ? <Loader2 size={24} className="animate-spin text-indigo-400" /> : <Check size={24} className="text-indigo-400" />}{loading ? "Đang hạch toán..." : "Xác nhận chuyển"}</button></div>
       </div>
     </div>
   );
