@@ -21,6 +21,7 @@ services:
     environment:
       - DIFY_API_KEY=${DIFY_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VITE_TELEGRAM_BOT_TOKEN=${VITE_TELEGRAM_BOT_TOKEN}
       - PORT=8080
       - NODE_ENV=production
     restart: always
