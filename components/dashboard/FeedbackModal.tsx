@@ -10,11 +10,6 @@ interface FeedbackModalProps {
   onClose: () => void;
 }
 
-// Telegram Bot Configuration
-const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-// Updated Group Chat ID
-const TELEGRAM_CHAT_ID = "-5008015561";
-
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({ onClose }) => {
   const { t } = useTranslation();
   const [content, setContent] = useState('');
@@ -43,7 +38,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ onClose }) => {
         status: 'PENDING'
       });
 
-      // 2. Send Notification to Telegram Group
+      // 2. Send Notification to Telegram Group via Proxy
       try {
         const message = `
 🚀 *New FinAI Feedback*
@@ -54,17 +49,15 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ onClose }) => {
 ${content.trim()}
         `;
 
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        await fetch('/api/telegram/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: message,
-            parse_mode: 'Markdown'
+            message: message
           })
         });
       } catch (tgError) {
-        console.warn("Telegram notification failed (Check Chat ID):", tgError);
+        console.warn("Telegram notification failed:", tgError);
         // We don't block the success flow if Telegram fails, as data is safe in Firestore
       }
 
@@ -120,8 +113,8 @@ ${content.trim()}
                     key={t.id}
                     onClick={() => setTopic(t.id as any)}
                     className={`flex flex-col items-center justify-center gap-2 py-3 rounded-2xl border-2 transition-all duration-200 ${isSelected
-                        ? `${t.bg} ${t.color} ${t.border} shadow-sm scale-[1.02]`
-                        : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
+                      ? `${t.bg} ${t.color} ${t.border} shadow-sm scale-[1.02]`
+                      : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
                       }`}
                   >
                     <Icon size={20} />

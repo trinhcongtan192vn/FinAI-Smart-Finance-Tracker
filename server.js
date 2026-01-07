@@ -189,6 +189,51 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, 'dist')));
 
+/**
+ * Handle Telegram Feedback
+ */
+app.post('/api/telegram/feedback', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    console.log(">>> [Telegram Feedback] Đang gửi feedback...");
+
+    try {
+        const { message, chat_id } = req.body;
+        const TELEGRAM_BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+        const DEFAULT_CHAT_ID = "-5008015561"; // Fallback chat ID if not provided
+
+        if (!TELEGRAM_BOT_TOKEN) {
+            console.error("!!! [Telegram Feedback Error] Missing Telegram Bot Token.");
+            return res.status(500).json({ error: 'Server missing Telegram Bot Token' });
+        }
+
+        const response = await axios.post(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+            {
+                chat_id: chat_id || DEFAULT_CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown'
+            },
+            {
+                headers: { 'Content-Type': 'application/json' },
+                timeout: 10000
+            }
+        );
+
+        console.log("<<< [Telegram Feedback] Thành công");
+        return res.status(200).json({ success: true, data: response.data });
+
+    } catch (error) {
+        console.error('!!! [Telegram Feedback Error]', error.message);
+        if (error.response) {
+            return res.status(error.response.status).json({
+                error: `Telegram API Error: ${error.response.status}`,
+                details: error.response.data
+            });
+        }
+        return res.status(500).json({ error: 'Lỗi gửi feedback Telegram: ' + error.message });
+    }
+});
+
 // Handle React Routing, return all requests to React app
 app.get('*', (req, res) => {
     // Skip /api routes
@@ -203,5 +248,6 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`=========================================`);
     console.log(`FinAI Proxy Server đang chạy tại port ${PORT}`);
     console.log(`Endpoint: POST http://localhost:${PORT}/api/chat`);
+    console.log(`Endpoint: POST http://localhost:${PORT}/api/telegram/feedback`);
     console.log(`=========================================`);
 });

@@ -5,10 +5,6 @@ import { addDoc, collection } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useTranslation } from 'react-i18next';
 
-// Telegram Bot Configuration
-const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = "-5008015561";
-
 interface GuestHelpModalProps {
     onClose: () => void;
 }
@@ -23,7 +19,7 @@ export const GuestHelpModal: React.FC<GuestHelpModalProps> = ({ onClose }) => {
         if (!helpForm.name || !helpForm.phone || !helpForm.email || !helpForm.message) return;
         setIsSendingHelp(true);
         try {
-            // 1. Send to Telegram
+            // 1. Send to Telegram via Proxy
             const message = `
 🆘 *GUEST HELP REQUEST*
 ---------------------------
@@ -35,13 +31,11 @@ ${helpForm.message}
 📅 *Time:* ${new Date().toLocaleString('vi-VN')}
         `;
 
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            await fetch('/api/telegram/feedback', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    chat_id: TELEGRAM_CHAT_ID,
-                    text: message,
-                    parse_mode: 'Markdown'
+                    message: message
                 })
             });
 

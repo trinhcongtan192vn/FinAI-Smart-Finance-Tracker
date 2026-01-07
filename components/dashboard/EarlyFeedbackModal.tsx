@@ -11,10 +11,6 @@ interface EarlyFeedbackModalProps {
   uid: string;
 }
 
-// Telegram Bot Configuration (Reused)
-const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = "-5008015561";
-
 export const EarlyFeedbackModal: React.FC<EarlyFeedbackModalProps> = ({ onClose, uid }) => {
   const { t } = useTranslation();
   const [content, setContent] = useState('');
@@ -51,13 +47,11 @@ ${content.trim()}
 📅 *Time:* ${new Date().toLocaleString('vi-VN')}
       `;
 
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      await fetch('/api/telegram/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: message,
-          parse_mode: 'Markdown'
+          message: message
         })
       });
 
