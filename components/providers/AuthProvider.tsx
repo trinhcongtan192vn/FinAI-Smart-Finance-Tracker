@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { DataContext } from '../../types';
 import i18n from '../../lib/i18n';
@@ -59,15 +59,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         }
                         if (data.currency) setAppCurrency(data.currency);
 
-                        setActiveContext({
-                            uid: currentUser.uid,
-                            displayName: data.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Personal',
-                            email: currentUser.email || '',
-                            photoURL: data.photoURL || currentUser.photoURL || '',
-                            permission: 'owner',
-                            tutorialState: data.tutorialState,
-                            financialProfile: data.financialProfile
-                        });
+                        const setPersonal = () => {
+                            setActiveContext({
+                                uid: currentUser.uid,
+                                displayName: data.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Personal',
+                                email: currentUser.email || '',
+                                photoURL: data.photoURL || currentUser.photoURL || '',
+                                permission: 'owner',
+                                tutorialState: data.tutorialState,
+                                financialProfile: data.financialProfile
+                            });
+                        };
+
+                        if (data.defaultViewUid && data.defaultViewUid !== currentUser.uid) {
+                            getDoc(doc(db, 'users', data.defaultViewUid)).then(sharedSnap => {
+                                if (sharedSnap.exists()) {
+                                    const sharedData = sharedSnap.data();
+                                    if (sharedData.sharedWithEmails?.includes(currentUser.email)) {
+                                        const perm = sharedData.sharedWithDetails?.find((s: any) => s.email === currentUser.email)?.permission || 'view';
+                                        setActiveContext({
+                                            uid: sharedSnap.id,
+                                            displayName: sharedData.displayName || 'Shared',
+                                            email: sharedData.email || '',
+                                            // photoURL: sharedData.photoURL || '',
+                                            permission: perm,
+                                        });
+                                    } else { setPersonal(); }
+                                } else { setPersonal(); }
+                            }).catch(() => setPersonal());
+                        } else {
+                            setPersonal();
+                        }
                     } else {
                         setIsOnboarding(true);
                         setActiveContext({

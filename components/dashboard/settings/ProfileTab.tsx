@@ -27,8 +27,8 @@ export const ProfileTab: React.FC = () => {
   const [passcodeEnabled, setPasscodeEnabled] = useState(false);
 
   // Default Data
-  const [defaultSourceId, setDefaultSourceId] = useState('');
-  const [availableAccounts, setAvailableAccounts] = useState<any[]>([]);
+  const [defaultViewUid, setDefaultViewUid] = useState('');
+  const [availableContexts, setAvailableContexts] = useState<any[]>([]);
 
   // Transaction Limit
   const { currentUsage, limit, loading: limitLoading } = useTransactionLimit(auth.currentUser?.uid || '');
@@ -44,21 +44,39 @@ export const ProfileTab: React.FC = () => {
         setFunMode(data.funMode !== false);
         setPasscodeEnabled(data.passcodeEnabled === true);
         setPhotoURL(data.photoURL || auth.currentUser?.photoURL || '');
-        setDefaultSourceId(data.defaultSourceId || '');
+        setDefaultViewUid(data.defaultViewUid || '');
       }
       setFetching(false);
     }, () => setFetching(false));
 
-    // Fetch accounts for default selector
-    const fetchAccounts = async () => {
+    // Fetch available contexts (Personal + Shared) for default selector
+    const fetchContexts = async () => {
+      if (!auth.currentUser?.email) return;
       try {
-        const q = query(collection(db, 'users', auth.currentUser!.uid, 'accounts'), where('status', '==', 'ACTIVE'));
+        const emailLower = auth.currentUser.email.toLowerCase();
+        // 1. Personal
+        const contexts = [{
+          uid: auth.currentUser.uid,
+          displayName: t('common.personal_account') || 'Personal Account',
+          email: auth.currentUser.email
+        }];
+
+        // 2. Shared
+        const q = query(collection(db, 'users'), where('sharedWithEmails', 'array-contains', emailLower));
         const snap = await getDocs(q);
-        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setAvailableAccounts(list);
+        snap.docs.forEach(d => {
+          const data = d.data();
+          contexts.push({
+            uid: d.id,
+            displayName: data.displayName || data.email?.split('@')[0] || 'Shared Account',
+            email: data.email
+          });
+        });
+
+        setAvailableContexts(contexts);
       } catch (e) { }
     };
-    fetchAccounts();
+    fetchContexts();
 
     return () => unsub();
   }, []);
@@ -80,7 +98,7 @@ export const ProfileTab: React.FC = () => {
         language,
         currency,
         funMode,
-        defaultSourceId,
+        defaultViewUid,
         updatedAt: new Date().toISOString()
       });
       handleToast(t('settings.success'));
@@ -163,18 +181,19 @@ export const ProfileTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Default Data Source */}
+      {/* Default Dashboard View */}
       <div className="space-y-2">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Save size={10} /> {t('settings.default_source') || "Default Source (For New Entries)"}</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Save size={10} /> {t('settings.default_view') || "Default Dashboard View"}</label>
         <div className="bg-white p-2 rounded-2xl border border-slate-100 relative">
           <select
-            value={defaultSourceId}
-            onChange={(e) => setDefaultSourceId(e.target.value)}
+            value={defaultViewUid}
+            onChange={(e) => setDefaultViewUid(e.target.value)}
             className="w-full p-3 bg-transparent font-bold text-sm text-slate-900 outline-none appearance-none relative z-10"
           >
-            <option value="">-- {t('common.select_account') || "Select Account"} --</option>
-            {availableAccounts.map(acc => (
-              <option key={acc.id} value={acc.id}>{acc.name} ({acc.category})</option>
+            {availableContexts.map(ctx => (
+              <option key={ctx.uid} value={ctx.uid}>
+                {ctx.uid === auth.currentUser?.uid ? (t('common.personal') || "Personal") : ctx.displayName} ({ctx.email})
+              </option>
             ))}
           </select>
         </div>
