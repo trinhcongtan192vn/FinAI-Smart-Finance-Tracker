@@ -46,8 +46,18 @@ export const NewEntry: React.FC<{ onNavigate: (v: ViewName) => void; onClose: ()
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [messages, isLoading, showComplexHints, parsedTransactions]);
 
+    const [defaultSourceId, setDefaultSourceId] = useState('');
+
     useEffect(() => {
         const fetchData = async () => {
+            // Fetch User Profile for Default Source
+            try {
+                const userDoc = await getDoc(doc(db, 'users', activeContext.uid));
+                if (userDoc.exists()) {
+                    setDefaultSourceId(userDoc.data().defaultSourceId || '');
+                }
+            } catch (e) { }
+
             const catSnap = await getDocs(collection(db, 'users', activeContext.uid, 'categories'));
             const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() } as Category));
             setCategories(cats.sort((a, b) => a.name.localeCompare(b.name)));
@@ -165,19 +175,26 @@ export const NewEntry: React.FC<{ onNavigate: (v: ViewName) => void; onClose: ()
 
             if (data.intent === 'valid_transaction' && data.extracted_transactions?.length > 0) {
                 const newTxs = data.extracted_transactions.map((t: any) => {
-                    let matchedSourceId = '';
+                    let matchedSourceId = defaultSourceId || '';
+
+                    // Logic to Auto-Detect from Credit Card name if specified by AI
                     if (t.is_credit_card && creditCards.length > 0) {
                         if (t.credit_card_name) {
                             const found = creditCards.find(c =>
                                 c.name.toLowerCase().includes(t.credit_card_name.toLowerCase()) ||
                                 c.credit_card_details?.bank_name.toLowerCase().includes(t.credit_card_name.toLowerCase())
                             );
-                            matchedSourceId = found ? found.id : creditCards[0].id;
+                            matchedSourceId = found ? found.id : (matchedSourceId || creditCards[0].id);
                         } else {
-                            matchedSourceId = creditCards[0].id;
+                            // If user didn't specify name, but intent is credit, prefer credit card.
+                            // If defaultSource is NOT a credit card, force pick first credit card.
+                            const defaultIsCredit = creditCards.some(c => c.id === defaultSourceId);
+                            matchedSourceId = defaultIsCredit ? defaultSourceId : creditCards[0].id;
                         }
-                    } else if (cashAccounts.length > 0) {
-                        matchedSourceId = cashAccounts[0].id;
+                    } else if (!matchedSourceId) {
+                        // Fallback if no default set
+                        if (cashAccounts.length > 0) matchedSourceId = cashAccounts[0].id;
+                        else if (creditCards.length > 0) matchedSourceId = creditCards[0].id;
                     }
 
                     return {
