@@ -23,6 +23,7 @@ console.log(">>> [Server] Khởi động với các cấu hình:");
 console.log("    - __dirname:", __dirname);
 console.log("    - DIFY_API_KEY:", process.env.DIFY_API_KEY ? "Đã nạp" : "Thiếu");
 console.log("    - GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "Đã nạp" : "Thiếu");
+console.log("    - TELEGRAM_BOT_TOKEN:", (process.env.VITE_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN) ? "Đã nạp" : "Thiếu");
 
 /**
  * Proxy Endpoint cho Dify AI Advisor
@@ -126,16 +127,39 @@ app.post('/api/telegram/feedback', async (req, res) => {
         const TELEGRAM_BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
         const DEFAULT_CHAT_ID = "-5008015561";
 
-        if (!TELEGRAM_BOT_TOKEN) return res.status(500).json({ error: 'Server missing Telegram Bot Token' });
+        if (!TELEGRAM_BOT_TOKEN) {
+            console.error("!!! [Telegram Error] Missing Bot Token");
+            return res.status(500).json({ error: 'Server missing Telegram Bot Token' });
+        }
 
-        const response = await axios.post(
-            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-            { chat_id: chat_id || DEFAULT_CHAT_ID, text: message, parse_mode: 'Markdown' },
-            { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
-        );
+        const targetChatId = chat_id || DEFAULT_CHAT_ID;
+        console.log(`>>> [Telegram] Sending message to ${targetChatId}...`);
+
+        try {
+            // First try with Markdown
+            await axios.post(
+                `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+                { chat_id: targetChatId, text: message, parse_mode: 'Markdown' },
+                { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
+            );
+        } catch (markdownError) {
+            console.warn("!!! [Telegram Warning] Markdown send failed, retrying as plain text:", markdownError.response?.data || markdownError.message);
+            // Retry without parse_mode if Markdown fails (likely due to unescaped characters in user input)
+            await axios.post(
+                `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+                { chat_id: targetChatId, text: message }, // No parse_mode
+                { headers: { 'Content-Type': 'application/json' }, timeout: 10000 }
+            );
+        }
+
+        console.log("<<< [Telegram] Message sent successfully");
         return res.status(200).json({ success: true });
     } catch (error) {
-        return res.status(error.response?.status || 500).json({ error: error.message });
+        console.error('!!! [Telegram Error]', error.response?.data || error.message);
+        return res.status(error.response?.status || 500).json({
+            error: error.message,
+            details: error.response?.data
+        });
     }
 });
 
