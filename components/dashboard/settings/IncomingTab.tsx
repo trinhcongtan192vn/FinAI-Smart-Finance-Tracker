@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, User, Database, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
 import { DataContext, ShareDetail } from '../../../types';
 
@@ -14,11 +14,30 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
   const [incomingShares, setIncomingShares] = useState<DataContext[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [defaultViewUid, setDefaultViewUid] = useState<string>('');
+
+  const fetchDefaultView = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const d = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      if (d.exists()) setDefaultViewUid(d.data().defaultViewUid || '');
+    } catch (e) { }
+  };
+
+  const toggleDefault = async (uid: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!auth.currentUser) return;
+    const newVal = defaultViewUid === uid ? '' : uid;
+    setDefaultViewUid(newVal);
+    try {
+      await updateDoc(doc(db, 'users', auth.currentUser.uid), { defaultViewUid: newVal });
+    } catch (e) { alert("Failed to save preference."); }
+  };
 
   const findIncoming = async () => {
     const userEmail = auth.currentUser?.email;
     if (!userEmail) return;
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -26,7 +45,7 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
       // Truy vấn này có thể bị chặn bởi rules nếu chưa cấu hình allow list
       const q = query(collection(db, 'users'), where('sharedWithEmails', 'array-contains', emailLower));
       const snap = await getDocs(q);
-      
+
       const incoming: DataContext[] = snap.docs.map(d => {
         const data = d.data();
         const myEntry = (data.sharedWithDetails || []).find((s: ShareDetail) => s.email.toLowerCase() === emailLower);
@@ -50,7 +69,7 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
     }
   };
 
-  useEffect(() => { findIncoming(); }, []);
+  useEffect(() => { findIncoming(); fetchDefaultView(); }, []);
 
   return (
     <div className="flex flex-col gap-5 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -60,8 +79,8 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
-      
-      <button 
+
+      <button
         onClick={() => onSwitchContext({
           uid: auth.currentUser?.uid || '',
           displayName: auth.currentUser?.displayName || 'Personal',
@@ -79,7 +98,14 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
             <p className={`text-[10px] font-bold ${activeContext.uid === auth.currentUser?.uid ? 'opacity-80' : 'text-slate-400'}`}>Chủ sở hữu</p>
           </div>
         </div>
-        {activeContext.uid === auth.currentUser?.uid && <Check size={20} />}
+        {activeContext.uid === auth.currentUser?.uid && <Check size={20} className="text-white" />}
+
+        <div
+          onClick={(e) => toggleDefault(auth.currentUser?.uid || '', e)}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${defaultViewUid === auth.currentUser?.uid ? 'bg-amber-100 text-amber-500' : 'bg-transparent text-slate-300 hover:bg-slate-100'}`}
+        >
+          <span className="material-symbols-outlined text-[18px] font-bold">{defaultViewUid === auth.currentUser?.uid ? 'star' : 'star_border'}</span>
+        </div>
       </button>
 
       <div className="h-px bg-slate-100 my-1"></div>
@@ -95,7 +121,7 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
 
       <div className="flex flex-col gap-3">
         {incomingShares.map((share) => (
-          <button 
+          <button
             key={share.uid}
             onClick={() => onSwitchContext(share)}
             className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${activeContext.uid === share.uid ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-white border-slate-100 hover:border-indigo-200'}`}
@@ -109,10 +135,18 @@ export const IncomingTab: React.FC<IncomingTabProps> = ({ onSwitchContext, activ
                 <p className={`text-[10px] font-bold ${activeContext.uid === share.uid ? 'opacity-70' : 'text-slate-400'} truncate`}>{share.email} • {share.permission}</p>
               </div>
             </div>
-            {activeContext.uid === share.uid && <Check size={20} />}
+            {activeContext.uid === share.uid && <Check size={20} className="text-white" />}
+
+            <div
+              onClick={(e) => toggleDefault(share.uid, e)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${defaultViewUid === share.uid ? 'bg-amber-100 text-amber-500' : 'bg-transparent text-slate-300 hover:bg-slate-100'}`}
+            >
+              <span className="material-symbols-outlined text-[18px] font-bold">{defaultViewUid === share.uid ? 'star' : 'star_border'}</span>
+            </div>
           </button>
         ))}
       </div>
     </div>
   );
 };
+/* RETHINK: We need to inject the Default View logic directly into the list items. */
